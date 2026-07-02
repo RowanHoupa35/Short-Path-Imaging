@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+
+# Environnements virtuels
+venv/
+.venv/
+env/
+
+# Figures générées par --save-figures
+results/
+
+# OS / éditeurs
+.DS_Store
+.vscode/
+.idea/
