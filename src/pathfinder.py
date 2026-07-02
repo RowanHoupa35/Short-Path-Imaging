@@ -1,12 +1,12 @@
 """
-pathfinder.py — Recherche du plus court chemin dans le graphe de pixels.
+pathfinder.py — Shortest-path search in the pixel graph.
 
-Deux stratégies sont proposées :
-  1. scipy.sparse.csgraph.dijkstra   — rapide, vectorisé, recommandé
-  2. networkx.dijkstra_path           — plus lisible, utile pour les petites images
+Two strategies are available:
+  1. scipy.sparse.csgraph.dijkstra   — fast, vectorized, recommended
+  2. networkx.dijkstra_path           — more readable, useful for small images
 
-La fonction principale `find_path` retourne la liste ordonnée des coordonnées
-(ligne, colonne) du chemin optimal entre deux pixels.
+The main function `find_path` returns the ordered list of (row, col)
+coordinates of the optimal path between two pixels.
 """
 
 import numpy as np
@@ -23,34 +23,34 @@ def find_path(
     image_shape: tuple[int, int],
 ) -> list[tuple[int, int]]:
     """
-    Calcule le plus court chemin (Dijkstra) entre deux pixels.
+    Computes the shortest path (Dijkstra) between two pixels.
 
     Parameters
     ----------
     graph : scipy.sparse.csr_matrix, shape (N, N)
-        Graphe de grille pondéré (sortie de graph_builder.build_graph).
+        Weighted grid graph (output of graph_builder.build_graph).
     src_pixel : (row, col)
-        Pixel de départ.
+        Starting pixel.
     dst_pixel : (row, col)
-        Pixel d'arrivée.
+        Destination pixel.
     image_shape : (H, W)
-        Dimensions de l'image (nécessaires pour la conversion nœud ↔ pixel).
+        Image dimensions (needed for node <-> pixel conversion).
 
     Returns
     -------
     list of (row, col)
-        Séquence ordonnée de pixels formant le chemin optimal.
+        Ordered sequence of pixels forming the optimal path.
 
     Raises
     ------
     ValueError
-        Si aucun chemin n'existe entre src et dst.
+        If no path exists between src and dst.
     """
     H, W = image_shape
     src_node = pixel_to_node(*src_pixel, W)
     dst_node = pixel_to_node(*dst_pixel, W)
 
-    # Dijkstra depuis le nœud source uniquement (directed=False → graphe non orienté)
+    # Dijkstra from the source node only (directed=False -> undirected graph)
     dist_matrix, predecessors = scipy_dijkstra(
         graph,
         directed=False,
@@ -60,11 +60,11 @@ def find_path(
 
     if np.isinf(dist_matrix[dst_node]):
         raise ValueError(
-            f"Aucun chemin entre {src_pixel} et {dst_pixel}. "
-            "Vérifiez la connectivité du graphe."
+            f"No path between {src_pixel} and {dst_pixel}. "
+            "Check the graph connectivity."
         )
 
-    # Reconstruction du chemin par remontée des prédécesseurs
+    # Reconstruct the path by walking back through the predecessors
     path_nodes = _reconstruct_path(predecessors, src_node, dst_node)
     path_pixels = [node_to_pixel(n, W) for n in path_nodes]
     return path_pixels
@@ -76,24 +76,24 @@ def find_path_multipoint(
     image_shape: tuple[int, int],
 ) -> list[tuple[int, int]]:
     """
-    Calcule le chemin optimal passant par une liste ordonnée de waypoints.
+    Computes the optimal path passing through an ordered list of waypoints.
 
-    Enchaîne les appels à `find_path` entre chaque paire de points consécutifs.
+    Chains calls to `find_path` between each pair of consecutive points.
 
     Parameters
     ----------
     graph : scipy.sparse.csr_matrix
     waypoints : list of (row, col)
-        Au moins deux points. Le chemin reliera waypoints[0] → waypoints[1] → …
+        At least two points. The path connects waypoints[0] -> waypoints[1] -> ...
     image_shape : (H, W)
 
     Returns
     -------
     list of (row, col)
-        Chemin concaténé (sans duplication des jonctions).
+        Concatenated path (without duplicating the junction points).
     """
     if len(waypoints) < 2:
-        raise ValueError("Au moins deux points sont nécessaires.")
+        raise ValueError("At least two points are required.")
 
     full_path: list[tuple[int, int]] = []
     for i in range(len(waypoints) - 1):
@@ -101,7 +101,7 @@ def find_path_multipoint(
         if i == 0:
             full_path.extend(segment)
         else:
-            full_path.extend(segment[1:])  # évite la duplication du point de jonction
+            full_path.extend(segment[1:])  # avoids duplicating the junction point
 
     return full_path
 
@@ -111,8 +111,8 @@ def straight_line_path(
     dst_pixel: tuple[int, int],
 ) -> list[tuple[int, int]]:
     """
-    Retourne les pixels du segment droit (Bresenham) entre src et dst.
-    Utilisé comme chemin de référence "naïf" pour la comparaison.
+    Returns the pixels of the straight (Bresenham) segment between src and dst.
+    Used as the "naive" reference path for comparison.
     """
     r0, c0 = src_pixel
     r1, c1 = dst_pixel
@@ -145,7 +145,8 @@ def path_cost(
     path: list[tuple[int, int]],
 ) -> float:
     """
-    Calcule le coût total d'un chemin comme la somme des coûts des pixels traversés.
+    Computes the total cost of a path as the sum of the costs of the
+    pixels it traverses.
 
     Parameters
     ----------
@@ -160,7 +161,7 @@ def path_cost(
 
 
 # ---------------------------------------------------------------------------
-# Helpers internes
+# Internal helpers
 # ---------------------------------------------------------------------------
 
 def _reconstruct_path(
@@ -168,12 +169,12 @@ def _reconstruct_path(
     src: int,
     dst: int,
 ) -> list[int]:
-    """Remonte le tableau des prédécesseurs de dst jusqu'à src."""
+    """Walks the predecessor array back from dst to src."""
     path = []
     current = dst
     while current != src:
         if current < 0:
-            raise ValueError("Chemin introuvable — prédécesseur invalide.")
+            raise ValueError("Path not found — invalid predecessor.")
         path.append(current)
         current = predecessors[current]
     path.append(src)

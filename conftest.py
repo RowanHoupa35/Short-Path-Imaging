@@ -1,5 +1,5 @@
-"""Racine pytest : garantit que `src` est importable en tant que package
-depuis n'importe quel répertoire d'où pytest est lancé."""
+"""Pytest root config: ensures `src` is importable as a package
+regardless of the directory pytest is invoked from."""
 import sys
 from pathlib import Path
 

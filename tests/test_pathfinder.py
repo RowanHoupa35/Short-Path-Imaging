@@ -49,25 +49,25 @@ def test_find_path_uniform_cost_map_is_straight_line():
 
 
 def test_find_path_avoids_high_cost_region():
-    """Le chemin optimal doit contourner un mur de coût élevé plutôt que
-    le traverser en ligne droite, si un détour moins coûteux existe."""
+    """The optimal path must go around a high-cost wall rather than
+    crossing it in a straight line, when a cheaper detour exists."""
     H, W = 5, 5
     cost_map = np.ones((H, W))
-    cost_map[2, :] = 50.0  # mur horizontal coûteux au milieu, sauf un passage
-    cost_map[2, 4] = 1.0   # ouverture à droite
+    cost_map[2, :] = 50.0  # costly horizontal wall in the middle, except one gap
+    cost_map[2, 4] = 1.0   # opening on the right
 
     graph = build_graph(cost_map, connectivity=4)
     path = find_path(graph, (0, 0), (4, 0), (H, W))
 
-    # Le chemin optimal ne doit pas traverser le mur coûteux directement
-    # sous la colonne de départ.
+    # The optimal path must not cross the costly wall directly
+    # below the starting column.
     assert (2, 0) not in path
     straight = [(0, 0), (1, 0), (2, 0), (3, 0), (4, 0)]
     assert path_cost(cost_map, path) < path_cost(cost_map, straight)
 
 
 def test_find_path_raises_when_unreachable():
-    # Graphe manuel à 2 nœuds sans arête entre eux.
+    # Manual 2-node graph with no edge between them.
     graph = sparse.csr_matrix((2, 2))
     with pytest.raises(ValueError):
         find_path(graph, (0, 0), (0, 1), image_shape=(1, 2))
@@ -82,7 +82,7 @@ def test_find_path_multipoint_avoids_duplicate_junction():
     path = find_path_multipoint(graph, waypoints, (H, W))
 
     assert path == [(0, 0), (0, 1), (0, 2), (0, 3), (0, 4)]
-    # Le point de jonction (0, 2) ne doit apparaître qu'une seule fois.
+    # The junction point (0, 2) must appear only once.
     assert path.count((0, 2)) == 1
 
 

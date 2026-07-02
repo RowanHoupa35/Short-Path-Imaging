@@ -5,7 +5,7 @@ from src.cost_map import compute_gradient_map, compute_cost_map, load_image
 
 
 def _step_image(size: int = 20) -> np.ndarray:
-    """Image avec un bord net vertical au milieu (moitié noire, moitié blanche)."""
+    """Image with a sharp vertical edge in the middle (half black, half white)."""
     img = np.zeros((size, size), dtype=float)
     img[:, size // 2:] = 1.0
     return img
@@ -46,8 +46,8 @@ def test_compute_cost_map_edge_has_lower_cost_than_interior():
     img = _step_image(size=40)
     cost = compute_cost_map(img, sigma=1.0, alpha=8.0)
 
-    edge_cost = cost[20, 20]        # sur le bord
-    interior_cost = cost[20, 5]     # zone homogène
+    edge_cost = cost[20, 20]        # on the edge
+    interior_cost = cost[20, 5]     # homogeneous area
 
     assert edge_cost < interior_cost
 
@@ -55,15 +55,15 @@ def test_compute_cost_map_edge_has_lower_cost_than_interior():
 def test_grad_threshold_flattens_weak_gradients():
     img = _step_image(size=40)
     grad = compute_gradient_map(img, sigma=1.0)
-    weak_threshold = grad.max() + 0.01  # seuil au-dessus du gradient le plus fort
+    weak_threshold = grad.max() + 0.01  # threshold above the strongest gradient
 
     cost_no_threshold = compute_cost_map(img, sigma=1.0, alpha=8.0, grad_threshold=0.0)
     cost_thresholded = compute_cost_map(img, sigma=1.0, alpha=8.0, grad_threshold=weak_threshold)
 
-    # Avec un seuil supérieur à tous les gradients, plus aucun bord n'est détecté
-    # donc le coût doit être uniformément 1.0.
+    # With a threshold above all gradients, no edge is detected anymore,
+    # so the cost must be uniformly 1.0.
     assert np.allclose(cost_thresholded, 1.0)
-    # Sans seuillage, il existe bien un bord de coût plus faible.
+    # Without thresholding, there is indeed a lower-cost edge.
     assert cost_no_threshold.min() < 1.0
 
 

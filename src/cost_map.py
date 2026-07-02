@@ -1,11 +1,11 @@
 """
-cost_map.py — Calcul de la carte de coûts à partir du gradient de l'image.
+cost_map.py — Computes the cost map from the image gradient.
 
-Le coût d'un pixel est w = exp(-alpha * |∇I|), soit :
-  - coût proche de 0  → fort gradient (bord)
-  - coût proche de 1  → faible gradient (intérieur homogène)
+The cost of a pixel is w = exp(-alpha * |gradient I|), i.e.:
+  - cost close to 0  -> strong gradient (edge)
+  - cost close to 1  -> weak gradient (homogeneous interior)
 
-Dijkstra favorisera donc les chemins qui longent les bords.
+Dijkstra will therefore favor paths that follow the edges.
 """
 
 import numpy as np
@@ -17,23 +17,23 @@ from skimage import img_as_float
 
 def load_image(path: str) -> np.ndarray:
     """
-    Charge une image et la convertit en niveaux de gris float [0, 1].
+    Loads an image and converts it to grayscale float [0, 1].
 
     Parameters
     ----------
     path : str
-        Chemin vers l'image (JPEG, PNG, TIFF…).
+        Path to the image (JPEG, PNG, TIFF...).
 
     Returns
     -------
     np.ndarray
-        Image en niveaux de gris, valeurs dans [0, 1], shape (H, W).
+        Grayscale image, values in [0, 1], shape (H, W).
     """
     img = cv2.imread(path, cv2.IMREAD_UNCHANGED)
     if img is None:
-        raise FileNotFoundError(f"Image introuvable : {path}")
+        raise FileNotFoundError(f"Image not found: {path}")
 
-    # Conversion BGR → RGB si nécessaire, puis niveaux de gris
+    # BGR -> RGB conversion if needed, then grayscale
     if img.ndim == 3:
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         gray = rgb2gray(img_as_float(img))
@@ -45,24 +45,24 @@ def load_image(path: str) -> np.ndarray:
 
 def compute_gradient_map(gray: np.ndarray, sigma: float = 1.0) -> np.ndarray:
     """
-    Calcule la carte de gradient (magnitude Sobel) après lissage gaussien.
+    Computes the gradient map (Sobel magnitude) after Gaussian smoothing.
 
     Parameters
     ----------
     gray : np.ndarray
-        Image en niveaux de gris [0, 1].
+        Grayscale image [0, 1].
     sigma : float
-        Écart-type du filtre gaussien de pré-lissage.
+        Standard deviation of the pre-smoothing Gaussian filter.
 
     Returns
     -------
     np.ndarray
-        Carte de gradient normalisée dans [0, 1], shape (H, W).
+        Gradient map normalized to [0, 1], shape (H, W).
     """
     smoothed = gaussian(gray, sigma=sigma)
     grad = sobel(smoothed)
 
-    # Normalisation dans [0, 1]
+    # Normalize to [0, 1]
     g_min, g_max = grad.min(), grad.max()
     if g_max > g_min:
         grad = (grad - g_min) / (g_max - g_min)
@@ -77,31 +77,31 @@ def compute_cost_map(
     grad_threshold: float = 0.0,
 ) -> np.ndarray:
     """
-    Calcule la carte de coûts : w(i,j) = exp(-alpha * |∇I(i,j)|).
+    Computes the cost map: w(i,j) = exp(-alpha * |gradient I(i,j)|).
 
-    Les pixels sur des bords forts ont un coût proche de 0 (~e^-alpha),
-    les pixels intérieurs homogènes ont un coût proche de 1.0.
-    Le contraste bord/intérieur est exponentiel (~e^alpha fois), ce qui
-    force Dijkstra à longer les contours même sur de longues distances.
+    Pixels on strong edges have a cost close to 0 (~e^-alpha),
+    homogeneous interior pixels have a cost close to 1.0.
+    The edge/interior contrast is exponential (~e^alpha times), which
+    forces Dijkstra to follow contours even over long distances.
 
     Parameters
     ----------
     gray : np.ndarray
-        Image en niveaux de gris [0, 1].
+        Grayscale image [0, 1].
     sigma : float
-        Paramètre de lissage avant calcul du gradient.
+        Smoothing parameter before computing the gradient.
     alpha : float
-        Contrôle la pénalité des zones sans bord. Valeur recommandée : 5–10.
+        Controls the penalty for edge-free areas. Recommended value: 5-10.
     grad_threshold : float
-        Seuil dans [0, 1] : les gradients normalisés inférieurs à ce seuil
-        sont ramenés à 0 avant le calcul du coût, ce qui neutralise les
-        bords faibles (ombres, bruit) en leur donnant un coût proche de 1
-        au lieu d'un léger avantage. 0.0 désactive le seuillage (défaut).
+        Threshold in [0, 1]: normalized gradients below this threshold
+        are set to 0 before the cost is computed, which neutralizes
+        weak edges (shadows, noise) by giving them a cost close to 1
+        instead of a slight advantage. 0.0 disables thresholding (default).
 
     Returns
     -------
     np.ndarray
-        Carte de coûts dans (0, 1], shape (H, W).
+        Cost map in (0, 1], shape (H, W).
     """
     grad = compute_gradient_map(gray, sigma=sigma)
     if grad_threshold > 0:

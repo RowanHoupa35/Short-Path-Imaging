@@ -38,8 +38,8 @@ def test_build_graph_4_connectivity_edge_count_no_duplicates():
     cost_map = np.ones((H, W))
     graph = build_graph(cost_map, connectivity=4)
 
-    # Chaque arête non-orientée doit être stockée une seule fois :
-    # H*(W-1) arêtes horizontales + (H-1)*W arêtes verticales.
+    # Each undirected edge must be stored exactly once:
+    # H*(W-1) horizontal edges + (H-1)*W vertical edges.
     expected_edges = H * (W - 1) + (H - 1) * W
     assert graph.nnz == expected_edges
 
@@ -63,8 +63,8 @@ def test_build_graph_edge_weight_is_average_of_endpoint_costs():
     v = pixel_to_node(0, 1, W=2)
     expected_weight = (cost_map[0, 0] + cost_map[0, 1]) / 2.0
 
-    # L'arête n'est stockée que dans un seul sens (voir commentaire dans
-    # graph_builder.py) : on accepte indifféremment graph[u, v] ou graph[v, u].
+    # The edge is only stored in one direction (see the comment in
+    # graph_builder.py): we accept either graph[u, v] or graph[v, u].
     stored_weight = graph[u, v] if graph[u, v] != 0 else graph[v, u]
     assert stored_weight == pytest.approx(expected_weight)
 
@@ -74,7 +74,7 @@ def test_build_graph_diagonal_weight_applied():
     graph = build_graph(cost_map, connectivity=8, diagonal_weight=1.4142)
 
     u = pixel_to_node(0, 0, W=2)
-    v = pixel_to_node(1, 1, W=2)  # voisin diagonal
+    v = pixel_to_node(1, 1, W=2)  # diagonal neighbor
     expected_weight = ((0.5 + 0.5) / 2.0) * 1.4142
 
     stored_weight = graph[u, v] if graph[u, v] != 0 else graph[v, u]
@@ -82,8 +82,8 @@ def test_build_graph_diagonal_weight_applied():
 
 
 def test_build_graph_undirected_dijkstra_is_symmetric():
-    """Même en ne stockant chaque arête que dans un sens, scipy_dijkstra
-    avec directed=False doit donner des distances symétriques."""
+    """Even when each edge is only stored in one direction, scipy_dijkstra
+    with directed=False must produce symmetric distances."""
     rng = np.random.default_rng(0)
     cost_map = rng.uniform(0.1, 1.0, size=(6, 6))
     graph = build_graph(cost_map, connectivity=8)

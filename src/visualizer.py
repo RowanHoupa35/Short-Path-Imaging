@@ -1,12 +1,12 @@
 """
-visualizer.py — Toutes les figures du projet.
+visualizer.py — All the figures of the project.
 
-Figure 1 — Image originale + carte de gradient
-Figure 2 — Carte de coûts avec chemin optimal superposé
-Figure 3 — Comparaison Dijkstra vs chemin naïf (Bresenham)
+Figure 1 — Original image + gradient map
+Figure 2 — Cost map with the optimal path overlaid
+Figure 3 — Dijkstra vs naive path (Bresenham) comparison
 
-Chaque fonction accepte un argument `save_path` (optionnel) pour exporter
-la figure en haute résolution (300 dpi PNG).
+Each function accepts an optional `save_path` argument to export the
+figure at high resolution (300 dpi PNG).
 """
 
 from __future__ import annotations
@@ -20,20 +20,20 @@ from matplotlib.cm import ScalarMappable
 
 
 # ---------------------------------------------------------------------------
-# Utilitaires bas niveau
+# Low-level utilities
 # ---------------------------------------------------------------------------
 
 def _path_to_arrays(
     path: list[tuple[int, int]],
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Sépare une liste de (row, col) en deux tableaux numpy."""
+    """Splits a list of (row, col) into two numpy arrays."""
     rows = np.array([p[0] for p in path], dtype=float)
     cols = np.array([p[1] for p in path], dtype=float)
     return rows, cols
 
 
 def _mark_point(ax: plt.Axes, pixel: tuple[int, int], color: str, label: str) -> None:
-    """Trace un marker annoté sur un pixel."""
+    """Draws an annotated marker on a pixel."""
     ax.plot(pixel[1], pixel[0], "o", color=color, markersize=9, zorder=5)
     ax.annotate(
         label,
@@ -46,7 +46,7 @@ def _mark_point(ax: plt.Axes, pixel: tuple[int, int], color: str, label: str) ->
 
 
 # ---------------------------------------------------------------------------
-# Figure 1 — Image originale + carte de gradient
+# Figure 1 — Original image + gradient map
 # ---------------------------------------------------------------------------
 
 def figure_image_and_gradient(
@@ -55,45 +55,45 @@ def figure_image_and_gradient(
     save_path: str | None = None,
 ) -> plt.Figure:
     """
-    Affiche l'image en niveaux de gris et sa carte de gradient côte à côte.
+    Displays the grayscale image and its gradient map side by side.
 
     Parameters
     ----------
     gray : np.ndarray
-        Image en niveaux de gris [0, 1].
+        Grayscale image [0, 1].
     gradient : np.ndarray
-        Carte de gradient (sortie de cost_map.compute_gradient_map).
+        Gradient map (output of cost_map.compute_gradient_map).
     save_path : str, optional
-        Si fourni, sauvegarde la figure à ce chemin (PNG, 300 dpi).
+        If provided, saves the figure to this path (PNG, 300 dpi).
 
     Returns
     -------
     matplotlib.figure.Figure
     """
     fig, axes = plt.subplots(1, 2, figsize=(12, 5))
-    fig.suptitle("Image originale et carte de gradient", fontsize=14, fontweight="bold")
+    fig.suptitle("Original image and gradient map", fontsize=14, fontweight="bold")
 
     axes[0].imshow(gray, cmap="gray", vmin=0, vmax=1)
-    axes[0].set_title("Image en niveaux de gris")
+    axes[0].set_title("Grayscale image")
     axes[0].axis("off")
 
     im = axes[1].imshow(gradient, cmap="hot", vmin=0, vmax=1)
-    axes[1].set_title("Carte de gradient (Sobel)")
+    axes[1].set_title("Gradient map (Sobel)")
     axes[1].axis("off")
 
     cbar = fig.colorbar(im, ax=axes[1], fraction=0.046, pad=0.04)
-    cbar.set_label("|∇I|  (normalisé)", fontsize=9)
+    cbar.set_label("|gradient I|  (normalized)", fontsize=9)
 
     fig.tight_layout()
     if save_path:
         fig.savefig(save_path, dpi=300, bbox_inches="tight")
-        print(f"  Figure sauvegardée → {save_path}")
+        print(f"  Figure saved -> {save_path}")
 
     return fig
 
 
 # ---------------------------------------------------------------------------
-# Figure 2 — Carte de coûts + chemin optimal
+# Figure 2 — Cost map + optimal path
 # ---------------------------------------------------------------------------
 
 def figure_cost_and_path(
@@ -105,18 +105,18 @@ def figure_cost_and_path(
     save_path: str | None = None,
 ) -> plt.Figure:
     """
-    Superpose le chemin optimal à la carte de coûts.
+    Overlays the optimal path on the cost map.
 
     Parameters
     ----------
     cost_map : np.ndarray
-        Carte de coûts (0=bord, 1=intérieur homogène).
+        Cost map (0=edge, 1=homogeneous interior).
     path : list of (row, col)
-        Chemin optimal (Dijkstra).
+        Optimal path (Dijkstra).
     src_pixel, dst_pixel : (row, col)
-        Points de départ et d'arrivée.
+        Start and end points.
     waypoints : list of (row, col), optional
-        Points intermédiaires, s'il y en a.
+        Intermediate points, if any.
     save_path : str, optional
 
     Returns
@@ -124,39 +124,39 @@ def figure_cost_and_path(
     matplotlib.figure.Figure
     """
     fig, ax = plt.subplots(figsize=(8, 8))
-    fig.suptitle("Carte de coûts et chemin optimal (Dijkstra)", fontsize=13, fontweight="bold")
+    fig.suptitle("Cost map and optimal path (Dijkstra)", fontsize=13, fontweight="bold")
 
     im = ax.imshow(cost_map, cmap="viridis", vmin=0, vmax=1)
     cbar = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
-    cbar.set_label("Coût  w = 1/(1+|∇I|)", fontsize=9)
+    cbar.set_label("Cost  w = exp(-alpha * |gradient I|)", fontsize=9)
 
-    # Tracé du chemin
+    # Draw the path
     rows, cols = _path_to_arrays(path)
-    ax.plot(cols, rows, color="red", linewidth=1.5, label="Chemin Dijkstra", zorder=4)
+    ax.plot(cols, rows, color="red", linewidth=1.5, label="Dijkstra path", zorder=4)
 
-    # Points source / destination
+    # Source / destination points
     _mark_point(ax, src_pixel, "#00FF88", "S")
     _mark_point(ax, dst_pixel, "#FF6600", "D")
 
-    # Waypoints intermédiaires
+    # Intermediate waypoints
     if waypoints:
         for i, wp in enumerate(waypoints):
             _mark_point(ax, wp, "#FFD700", f"W{i+1}")
 
     ax.legend(loc="upper right", fontsize=9)
-    ax.set_title(f"Chemin de longueur {len(path)} pixels", fontsize=10)
+    ax.set_title(f"Path length: {len(path)} pixels", fontsize=10)
     ax.axis("off")
 
     fig.tight_layout()
     if save_path:
         fig.savefig(save_path, dpi=300, bbox_inches="tight")
-        print(f"  Figure sauvegardée → {save_path}")
+        print(f"  Figure saved -> {save_path}")
 
     return fig
 
 
 # ---------------------------------------------------------------------------
-# Figure 3 — Comparaison Dijkstra vs chemin naïf
+# Figure 3 — Dijkstra vs naive path comparison
 # ---------------------------------------------------------------------------
 
 def figure_comparison(
@@ -170,18 +170,18 @@ def figure_comparison(
     save_path: str | None = None,
 ) -> plt.Figure:
     """
-    Compare le chemin Dijkstra et le chemin naïf (ligne droite de Bresenham)
-    superposés sur l'image originale.
+    Compares the Dijkstra path and the naive path (Bresenham straight line)
+    overlaid on the original image.
 
     Parameters
     ----------
     gray : np.ndarray
-        Image en niveaux de gris [0, 1].
+        Grayscale image [0, 1].
     path_dijkstra, path_naive : list of (row, col)
-        Les deux chemins à comparer.
+        The two paths to compare.
     src_pixel, dst_pixel : (row, col)
     cost_dijkstra, cost_naive : float
-        Coûts cumulatifs respectifs.
+        Respective cumulative costs.
     save_path : str, optional
 
     Returns
@@ -190,14 +190,14 @@ def figure_comparison(
     """
     fig, axes = plt.subplots(1, 2, figsize=(14, 6), sharey=True)
     fig.suptitle(
-        "Comparaison : Dijkstra vs ligne droite (Bresenham)",
+        "Comparison: Dijkstra vs straight line (Bresenham)",
         fontsize=13,
         fontweight="bold",
     )
 
     for ax, path, title, color, cost in [
-        (axes[0], path_dijkstra, "Dijkstra (chemin optimal)", "#FF4040", cost_dijkstra),
-        (axes[1], path_naive,   "Ligne droite (naïf)",        "#4080FF", cost_naive),
+        (axes[0], path_dijkstra, "Dijkstra (optimal path)", "#FF4040", cost_dijkstra),
+        (axes[1], path_naive,   "Straight line (naive)",    "#4080FF", cost_naive),
     ]:
         ax.imshow(gray, cmap="gray", vmin=0, vmax=1)
 
@@ -207,28 +207,28 @@ def figure_comparison(
         _mark_point(ax, src_pixel, "#00FF88", "S")
         _mark_point(ax, dst_pixel, "#FF8800", "D")
 
-        ax.set_title(f"{title}\nCoût cumulatif : {cost:.2f}  |  {len(path)} pixels", fontsize=9)
+        ax.set_title(f"{title}\nCumulative cost: {cost:.2f}  |  {len(path)} pixels", fontsize=9)
         ax.axis("off")
 
-    # Ratio de réduction de coût
+    # Cost reduction ratio
     if cost_naive > 0:
         reduction = (cost_naive - cost_dijkstra) / cost_naive * 100
         fig.text(
             0.5, 0.01,
-            f"Réduction de coût : {reduction:.1f} %",
+            f"Cost reduction: {reduction:.1f}%",
             ha="center", fontsize=10, style="italic", color="#444444",
         )
 
     fig.tight_layout(rect=[0, 0.04, 1, 1])
     if save_path:
         fig.savefig(save_path, dpi=300, bbox_inches="tight")
-        print(f"  Figure sauvegardée → {save_path}")
+        print(f"  Figure saved -> {save_path}")
 
     return fig
 
 
 # ---------------------------------------------------------------------------
-# Overlay rapide sur une figure existante (utilisé par main.py)
+# Quick overlay on an existing figure (used by main.py)
 # ---------------------------------------------------------------------------
 
 def overlay_path_on_image(
@@ -236,10 +236,10 @@ def overlay_path_on_image(
     path: list[tuple[int, int]],
     color: str = "red",
     linewidth: float = 2.0,
-    label: str = "Chemin",
+    label: str = "Path",
 ) -> None:
     """
-    Trace un chemin sur un Axes matplotlib existant.
+    Draws a path on an existing matplotlib Axes.
 
     Parameters
     ----------
