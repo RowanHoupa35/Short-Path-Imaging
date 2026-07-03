@@ -149,12 +149,6 @@ The conceptual bridge is direct: minimizing a cost over a pixel graph amounts to
 
 ---
 
-## Author
-
-Rowan Houpa — Personal ML project (March 2026)
-
----
-
 ## License
 
 Distributed under the MIT License — see [LICENSE](LICENSE).
